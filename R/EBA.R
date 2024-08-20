@@ -1,17 +1,19 @@
-source("utilidades.R", local = T) # datos si se ejecuta desde aquí
+source("utilidades.R") # datos si se ejecuta desde aquí
 
-cotizaciones_UI <- function(id, label = "Cotizaciones") {
+
+# Pendiente. Falta ver qué datos se van a cargar, seguiría una estructura parecida a la de Cotizaciones
+EBA_UI <- function(id, label = "EBA") {
   ns <- NS(id)
   
   tabPanel(
-    "Cotizaciones",
-    value = "main_tabset_cotizaciones",
+    "EBA",
+    value = "main_tabset_EBA",
     sidebarLayout(
       sidebarPanel(
         width = 3,
         fluidRow(
           selectizeInput(
-            inputId = ns("cotizaciones_grafico_input"),
+            inputId = ns("EBA_grafico_input"),
             choices = diccionario_bancos_df$nombres,
             label = "Entidades",
             selected = c("BBVA", "Santander"),
@@ -30,7 +32,7 @@ cotizaciones_UI <- function(id, label = "Cotizaciones") {
       ),
       mainPanel(
         fluidRow(
-          ggiraph::girafeOutput(outputId = ns("cotizaciones_grafico_plt"))
+          ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt"))
         ),
         fluidRow(
           column(width = 6,
@@ -51,17 +53,17 @@ cotizaciones_UI <- function(id, label = "Cotizaciones") {
   )
 }
 
-cotizaciones_Server <- function(id, tabset_id) {
+EBA_Server <- function(id, tabset_id) {
   moduleServer(
     id,
     function(input, output, session) {
       ns <- session$ns
       
-      cotizaciones_df <- reactive({
-        req(input$cotizaciones_grafico_input, input$fecha_rango)
+      EBA_df <- reactive({
+        req(input$EBA_grafico_input, input$fecha_rango)
         
         selected_codigos <- diccionario_bancos_df %>%
-          filter(nombres %in% input$cotizaciones_grafico_input) %>%
+          filter(nombres %in% input$EBA_grafico_input) %>%
           pull(codigos)
         
         .data_df <- tryCatch(
@@ -91,15 +93,15 @@ cotizaciones_Server <- function(id, tabset_id) {
         return(.data_df)
       })
       
-      cotizaciones_grafico_plt <- reactive({
-        req(cotizaciones_df())
+      EBA_grafico_plt <- reactive({
+        req(EBA_df())
         
-        if (is.null(cotizaciones_df())) {
+        if (is.null(EBA_df())) {
           return(NULL)
         }
         
         plot_plt <- generar_lineas_plot(
-          .data = cotizaciones_df(),
+          .data = EBA_df(),
           .fecha = "fecha",
           .valores = "valores",
           .nombres = "nombres",
@@ -109,7 +111,7 @@ cotizaciones_Server <- function(id, tabset_id) {
           .xbreaks=NULL
         ) +
           # plot_plt <- ggplot(
-          #   data = cotizaciones_df(),
+          #   data = EBA_df(),
           #   mapping = aes(
           #     x = fecha,
           #     y = valores,
@@ -133,15 +135,15 @@ cotizaciones_Server <- function(id, tabset_id) {
         ggiraph::girafe(ggobj = plot_plt)
       })
       
-      output$cotizaciones_grafico_plt <- ggiraph::renderGirafe(cotizaciones_grafico_plt())
+      output$EBA_grafico_plt <- ggiraph::renderGirafe(EBA_grafico_plt())
       
       
       output$download_data <- downloadHandler(
         filename = function() {
-          paste("cotizaciones-", Sys.Date(), ".xlsx", sep = "")
+          paste("EBA-", Sys.Date(), ".xlsx", sep = "")
         },
         content = function(file) {
-          openxlsx::write.xlsx(cotizaciones_df(), file)
+          openxlsx::write.xlsx(EBA_df(), file)
         }
       )
     }
@@ -149,12 +151,12 @@ cotizaciones_Server <- function(id, tabset_id) {
 }
 
 ui <- navbarPage(
-  "Cotizaciones",
-  cotizaciones_UI("cotizaciones")
+  "EBA",
+  EBA_UI("EBA")
 )
 
 server <- function(input, output, session) {
-  cotizaciones_Server("cotizaciones", "main_tabset_cotizaciones")
+  EBA_Server("EBA", "main_tabset_EBA")
 }
 
 shinyApp(ui = ui, server = server)

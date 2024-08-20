@@ -6,7 +6,7 @@ library(tidyverse)
 ui <- navbarPage(
   fluid=TRUE,
   id="main_navbar",
-  title="entidades_bancarias",
+  title="Situación bancaria",
   shinyjs::useShinyjs(),
   theme = shinythemes::shinytheme("united"),
   # Titulo
@@ -25,7 +25,8 @@ ui <- navbarPage(
   ),
   
   cotizaciones_UI(id="cotizaciones"),
-  seccion2_UI(id="seccion2"),
+  EBA_UI(id="EBA"),
+  cascada_UI(id="cascada"),
   opciones_UI(id="opciones"),
   
 )

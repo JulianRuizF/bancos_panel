@@ -1,32 +1,30 @@
-# Hacer diccionarios ----
+# Cargar diccionarios ----
 
 diccionario_bancos_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_bancos_df.xlsx"), col_names = TRUE)
 diccionario_ibex_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_ibex_df.xlsx"), col_names = TRUE)
 
-
-# diccionario_bancos_df <- tibble::tibble(
-#   nombres = c("BBVA", "Santander", "CaixaBank", "Bankia", "Sabadell", "Bankinter", # Lo organizamos por países
-#               "BNP Paribas", "Société Générale", "Crédit Agricole",
-#               "HSBC Holdings", "Barclays", "Lloyds Banking Group", "Royal Bank of Scotland", "Standard Chartered",
-#               "Deutsche Bank", "Commerzbank",
-#               "JPMorgan Chase & Co.", "Bank of America", "Wells Fargo & Co.", "Citigroup Inc.", "Goldman Sachs Group Inc.", "Morgan Stanley", "U.S. Bancorp", "PNC Financial Services", "Capital One Financial", "Bank of New York Mellon"),
-#   
-#   codigos = c("BBVA.MC", "SAN.MC", "CABK.MC", "BKIA.MC", "SAB.MC", "BKT.MC", # ESP
-#               "BNP.PA", "GLE.PA", "ACA.PA", # Francia
-#               "HSBA.L", "BARC.L", "LLOY.L", "NWG.L", "STAN.L", # UK
-#               "DBK.DE", "CBK.DE", # Alemania
-#               "JPM", "BAC", "WFC", "C", "GS", "MS", "USB", "PNC", "COF", "BK") # US
+# Work Sans será la fuente que sustituye a Cabinet Grotesk
+# colores_new <- c(
+#   '#001e93',  # AZUL
+#   '#ffbd4c',  # AMARILLO
+#   '#6d6d6d',  # GRIS
+#   '#000000',  # NEGRO
+#   '#e6821e',  # NARANJA
+#   '#5d8a00',  # VERDE_OSCURO
+#   '#65db82',  # VERDE_CLARO
+#   '#aab620',  # MOSTAZA
+#   '#0cd7fb',  # AZUL_CIELO
+#   '#9a7100',  # MARRON
+#   '#24a669',  # VERDE
+#   '#0086b6'   # AZUL_PROFUNDO
 # )
 
-
-
-
-
-# Pendiente. Función para Generar gráficos de lineas
-generar_densidad_plot <- function(
+# Función para Generar gráficos de lineas
+generar_lineas_plot <- function(
     .data,
-    .valores,
-    .nombres="",
+    .fecha="fecha",
+    .valores="valores",
+    .nombres="nombres",
     .title="",
     .xscale=1,
     .xaccuracy=1,
@@ -35,99 +33,220 @@ generar_densidad_plot <- function(
     .yaccuracy=0.01,
     .ysuffix="",
     .trans="",
-    .debug = F
+    .xbreaks=NULL,
+    .debug = FALSE
 ) {
+  # Crear el plot inicial con ggplot2 y geom_line
+  plot_gg <- ggplot2::ggplot(data=.data, ggplot2::aes(x=!!as.symbol(.fecha), y=!!as.symbol(.valores), color=!!as.symbol(.nombres))) +
+    ggplot2::geom_line() +
+    ggplot2::labs(title=.title) +
+    tesorotools::tema_gabinete_load() +
+    scale_color_manual(values = tesorotools::colores_new)
   
-  plot_gg <- ggplot(data=.data |>
-                      group_by(!!as.symbol(.nombres)) |>
-                      mutate(
-                        media = mean(!!as.symbol(.valores), na.rm = T),
-                        mediana = median(!!as.symbol(.valores), na.rm=T),
-                        p25 = quantile(!!as.symbol(.valores), probs = c(0.25,0.75), na.rm=T) |> _[["25%"]],
-                        p75 = quantile(!!as.symbol(.valores), probs = c(0.25,0.75), na.rm=T) |> _[["75%"]]
-                      )) +
-    geom_density(
-      mapping=aes(
-        x=!!as.symbol(.valores),
-        color=!!as.symbol(.nombres)
-      )
-    ) +
-    ggiraph::geom_vline_interactive(
-      mapping=aes(xintercept=media,
-                  color=!!as.symbol(.nombres),
-                  tooltip=paste0(
-                    "Conjunto: ", !!as.symbol(.nombres), "\n",
-                    "Media: ", scales::number_format(big.mark=".", decimal.mark=",", accuracy=0.01)(media))
-      ),
-      linetype="solid",
-      linewidth=0.5
-    ) +
-    ggiraph::geom_vline_interactive(
-      mapping=aes(xintercept=mediana,
-                  color=!!as.symbol(.nombres),
-                  tooltip=paste0(
-                    "Conjunto: ", !!as.symbol(.nombres), "\n" ,
-                    "Mediana: ", scales::number_format(big.mark=".", decimal.mark=",", accuracy=0.01)(mediana)
-                  )
-      ),
-      linetype="twodash",
-      linewidth=0.5
-    )+
-    ggiraph::geom_vline_interactive(
-      mapping=aes(xintercept=p25,
-                  color=!!as.symbol(.nombres),
-                  tooltip=paste0(
-                    "Conjunto: ", !!as.symbol(.nombres), "\n",
-                    "P25: ", scales::number_format(big.mark=".", decimal.mark=",", accuracy=0.01)(p25))
-      ),
-      linetype="dashed",
-      linewidth=0.5
-    )+
-    ggiraph::geom_vline_interactive(
-      mapping=aes(xintercept=p75,
-                  color=!!as.symbol(.nombres),
-                  tooltip=paste0(
-                    "Conjunto: ", !!as.symbol(.nombres), "\n",
-                    "P75: ", scales::number_format(big.mark=".", decimal.mark=",", accuracy=0.01)(p75)),
-      ),
-      linetype="dashed",
-      linewidth=0.5
-    )+
-    tesorotools::tema_gabinete +
-    theme(
-      title = element_text(size=18),
-      text = element_text(size=18)
-    ) +
-    scale_y_continuous(
-      label=scales::number_format(
-        scale=.yscale,
-        accuracy=.yaccuracy,
-        suffix=.ysuffix
-      )
-    ) +
-    ggtitle(.title)
-  
-  
-  if(.trans != "") {
-    plot_gg <- plot_gg +
-      scale_x_continuous(
-        label=scales::number_format(
-          scale=.xscale,
-          suffix=.xsuffix,
-          accuracy=.xaccuracy
-        ),
-        trans=.trans
-      )
+  # Configurar los breaks del eje X para fechas
+  if (!is.null(.xbreaks)) {
+    plot_gg <- plot_gg + ggplot2::scale_x_date(breaks = .xbreaks, date_labels = "%Y-%m")
   } else {
-    plot_gg <- plot_gg +
-      scale_x_continuous(
-        label=scales::number_format(
-          scale=.xscale,
-          suffix=.xsuffix,
-          accuracy=.xaccuracy
-        )
-      )
+    # Utiliza breaks automáticos de fechas si .xbreaks es NULL
+    plot_gg <- plot_gg + ggplot2::scale_x_date(date_labels = "%Y-%m")
   }
   
-  ggiraph::girafe(ggobj=plot_gg)
+  # Configuraciones de la escala Y
+  plot_gg <- plot_gg +
+    ggplot2::scale_y_continuous(
+      labels = scales::number_format(scale=.yscale, suffix=.ysuffix, accuracy=.yaccuracy)
+    )
+  
+  # Aplicar transformaciones si es necesario
+  if (.trans != "") {
+    plot_gg <- plot_gg +
+      ggplot2::scale_x_date(trans = .trans, breaks = .xbreaks, date_labels = "%Y-%m")
+  }
+  
+  # Retornar el objeto ggplot
+  return(plot_gg)
+}
+
+generar_cascada_plot <- function (
+    .data = NULL, 
+    valores, 
+    labels, 
+    rect_text_labels = valores, 
+    rect_text_size = 10,  # Parametriza el tamaño de la letra de los valores
+    rect_text_labels_anchor = "centre", 
+    put_rect_text_outside_when_value_below = 0.05 * (max(cumsum(valores)) - min(cumsum(valores))), 
+    calc_total = FALSE, 
+    total_axis_text = "Total", 
+    total_rect_text = sum(valores), 
+    total_rect_color = "blue", 
+    total_rect_border_color = NA, 
+    total_rect_text_color = "white", 
+    fill_colours = NULL, 
+    fill_by_sign = TRUE, 
+    positive_color = "lightgreen", 
+    negative_color = "red", 
+    start_color = "yellow", 
+    end_color = "grey", 
+    rect_width = 0.7, 
+    rect_border = NA, 
+    draw_lines = TRUE, 
+    lines_color = "#D9E1FC",  # Parametrizando el color de las líneas discontinuas
+    lines_anchors = c("right", "left"), 
+    linetype = "dashed", 
+    draw_axis.x = "behind", 
+    theme_text_family = "", 
+    scale_y_to_waterfall = TRUE, 
+    print_plot = FALSE, 
+    ggplot_object_name = "cascada_plot", 
+    .xscale = 1, 
+    .xaccuracy = 1, 
+    .xsuffix = "", 
+    .yscale = 1, 
+    .yaccuracy = 1, 
+    .ysuffix = ""
+) {
+  if (!is.null(.data)) {
+    if (!is.data.frame(.data)) {
+      stop(".data was a ", class(.data)[1], ", but must be a data.frame.")
+    }
+    if (ncol(.data) < 2L) {
+      stop(".data had fewer than two columns, yet two are required: labels and valores.")
+    }
+    dat <- as.data.frame(.data)
+    labels <- dat[[1]]
+    valores <- dat[[2]]
+  }
+  if (!(length(valores) == length(labels) && length(valores) == length(rect_text_labels))) {
+    stop("valores, labels, fill_colours, and rect_text_labels must all have same length")
+  }
+  if (rect_width > 1) 
+    warning("rect_width > 1, your chart may look terrible")
+  
+  number_of_rectangles <- length(valores)
+  north_edge <- cumsum(valores)
+  south_edge <- c(0, cumsum(valores)[-length(valores)])
+  
+  # Ajuste de colores
+  if (is.null(fill_colours)) {
+    if (calc_total) {
+      fill_colours <- c(
+        start_color, 
+        ifelse(valores[-c(1, length(valores))] >= 0, positive_color, negative_color), 
+        end_color, 
+        total_rect_color
+      )
+    } else {
+      fill_colours <- c(
+        start_color, 
+        ifelse(valores[-c(1, length(valores))] >= 0, positive_color, negative_color), 
+        end_color
+      )
+    }
+  }
+  
+  rect_border_matching <- length(rect_border) == number_of_rectangles
+  if (!(rect_border_matching || length(rect_border) == 1)) {
+    stop("rect_border must be a single colour or one colour for each rectangle")
+  }
+  if (!(grepl("^[lrc]", lines_anchors[1]) && grepl("^[lrc]", lines_anchors[2]))) 
+    stop("lines_anchors must be a pair of any of the following: left, right, centre")
+  if (grepl("^l", lines_anchors[1])) 
+    anchor_left <- rect_width / 2
+  if (grepl("^c", lines_anchors[1])) 
+    anchor_left <- 0
+  if (grepl("^r", lines_anchors[1])) 
+    anchor_left <- -1 * rect_width / 2
+  if (grepl("^l", lines_anchors[2])) 
+    anchor_right <- -1 * rect_width / 2
+  if (grepl("^c", lines_anchors[2])) 
+    anchor_right <- 0
+  if (grepl("^r", lines_anchors[2])) 
+    anchor_right <- rect_width / 2
+  
+  # Gráfico cuando calc_total es FALSE
+  if (!calc_total) {
+    p <- ggplot2::ggplot(data.frame(x = labels, y = valores), ggplot2::aes_string(x = "x", y = "y")) +
+      ggplot2::geom_blank() + 
+      ggplot2::theme(axis.title = ggplot2::element_blank()) +
+      ggplot2::scale_x_discrete(labels = labels)
+    
+    # Ajustar los bordes norte y sur del último valor
+    north_edge[number_of_rectangles] <- valores[number_of_rectangles]
+    south_edge[number_of_rectangles] <- 0
+  } 
+  # Gráfico cuando calc_total es TRUE
+  else {
+    p <- ggplot2::ggplot(data.frame(x = c(labels, total_axis_text), y = c(valores, north_edge[number_of_rectangles])), 
+                         ggplot2::aes_string(x = "x", y = "y")) +
+      ggplot2::geom_blank() + 
+      ggplot2::theme(axis.title = ggplot2::element_blank()) +
+      ggplot2::scale_x_discrete(labels = c(labels, total_axis_text))
+  }
+  
+  # Dibuja los rectángulos y las líneas discontínuas
+  for (i in seq_along(valores)) {
+    p <- p + ggplot2::annotate("rect", xmin = i - rect_width / 2, xmax = i + rect_width / 2, ymin = south_edge[i], ymax = north_edge[i], 
+                               colour = rect_border[[if (rect_border_matching) i else 1]], fill = fill_colours[i])
+    if (i > 1 && draw_lines) {
+      p <- p + ggplot2::annotate("segment", x = i - 1 - anchor_left, xend = i + anchor_right, linetype = linetype, 
+                                 y = south_edge[i], yend = south_edge[i], color = lines_color)
+    }
+  }
+  
+  # Añade la línea discontinua entre la penúltima y última barra
+  if (!calc_total && draw_lines && number_of_rectangles > 1) {
+    p <- p + ggplot2::annotate("segment", 
+                               x = number_of_rectangles - 1 - anchor_left, 
+                               xend = number_of_rectangles + anchor_right, 
+                               y = north_edge[number_of_rectangles - 1], 
+                               yend = north_edge[number_of_rectangles], 
+                               linetype = linetype, color = lines_color)
+  }
+  
+  # Añadir etiquetas de texto a los rectángulos
+  for (i in seq_along(valores)) {
+    label_val <- scales::number_format(scale = .yscale, suffix = .ysuffix, accuracy = .yaccuracy)(valores[i])
+    if (abs(valores[i]) > put_rect_text_outside_when_value_below) {
+      p <- p + ggplot2::annotate("text", x = i, y = 0.5 * (north_edge[i] + south_edge[i]), family = theme_text_family, 
+                                 label = ifelse(rect_text_labels[i] == valores[i], label_val, rect_text_labels[i]), size = rect_text_size)
+    } else {
+      p <- p + ggplot2::annotate("text", x = i, y = north_edge[i], family = theme_text_family, 
+                                 label = ifelse(rect_text_labels[i] == valores[i], label_val, rect_text_labels[i]), 
+                                 vjust = ifelse(valores[i] >= 0, -0.2, 1.2), size = rect_text_size)
+    }
+  }
+  
+  # Dibuja la columna del total si calc_total es TRUE
+  if (calc_total) {
+    total_label_val <- scales::number_format(scale = .yscale, suffix = .ysuffix, accuracy = .yaccuracy)(total_rect_text)
+    p <- p + ggplot2::annotate("rect", xmin = number_of_rectangles + 1 - rect_width / 2, xmax = number_of_rectangles + 1 + rect_width / 2, 
+                               ymin = 0, ymax = north_edge[number_of_rectangles], colour = total_rect_border_color, fill = total_rect_color) + 
+      ggplot2::annotate("text", x = number_of_rectangles + 1, y = 0.5 * north_edge[number_of_rectangles], family = theme_text_family, 
+                        label = ifelse(total_rect_text == sum(valores), total_label_val, total_rect_text), color = total_rect_text_color, size = rect_text_size)
+    
+    if (draw_lines) {
+      p <- p + ggplot2::annotate("segment", x = number_of_rectangles - anchor_left, 
+                                 xend = number_of_rectangles + 1 + anchor_right, 
+                                 y = north_edge[number_of_rectangles], 
+                                 yend = north_edge[number_of_rectangles], linetype = linetype, color = lines_color)
+    }
+  }
+  
+  if (grepl("front", draw_axis.x)) {
+    p <- p + ggplot2::geom_hline(yintercept = 0)
+  }
+  
+  # Aplicar el tema personalizado y configurar el eje Y
+  p <- p + tesorotools::tema_gabinete_load() +
+    ggplot2::scale_y_continuous(labels = scales::number_format(scale = .yscale, suffix = .ysuffix, accuracy = .yaccuracy))
+  
+  # Mostrar o devolver el gráfico
+  if (print_plot) {
+    if (ggplot_object_name %in% ls(.GlobalEnv)) 
+      warning("Overwriting ", ggplot_object_name, " in global environment.")
+    assign(ggplot_object_name, p, inherits = TRUE)
+    print(p)
+  } else {
+    return(p)
+  }
 }
