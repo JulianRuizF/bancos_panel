@@ -1,0 +1,77 @@
+---
+title: "Bancos Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    theme:
+      bg: "#FFFFFF"
+      fg: "#000000" 
+      primary: "#FFC000"
+      base_font:
+        google: Open Sans
+      code_font:
+        google: Open Sans
+    orientation: columns
+    vertical_layout: fill
+params:
+  static: FALSE
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(lubridate)
+library(mapSpain)
+library(gt)
+library(DT)
+
+# Install thematic and un-comment for themed static plots (i.e., ggplot2)
+# thematic::thematic_rmd()
+
+knitr::opts_chunk$set(dpi=150, fig.width=5, fig.height=4)
+
+
+```
+
+```{r cargar graficos, warning=FALSE, echo=FALSE}
+
+graficos <- list.files("graficos/", pattern="*.Rds", full.names=TRUE)
+
+for (grafico_path in graficos) {
+  
+  # separamos la ruta del gráfico por / y después por ., tomando respectivamente el último y el primer valor de los vectores resultantes.
+  
+  plt_name <- (tail(str_split(grafico_path, "/")[[1]],1) %>% str_split("\\."))[[1]][1]
+
+  assign(plt_name, readRDS(grafico_path)) 
+}
+
+```
+
+z
+Demanda de valores
+=====
+
+Demanda de valores {.tabset}
+------
+
+<div style='display:flex; flex-direction:row; justify-content:space-evenly; align-items:center;'>
+<div>
+<table style="float:left;"><tr><td><b>Importe total de la demanda diaria de títulos de deuda en el Servicio de Compraventa de Valores, por tipo de título.</b> <i>Millones de euros. </i></td></tr><tr><td>
+```{r warning=FALSE, fig.width=8, fig.height=4}
+
+
+if (params$static) {
+  diario_tipo_titulo_importes_plt
+} else {
+  diario_tipo_titulo_importes_plotly_plt
+}
+
+
+```
+</td></tr><tr><td><u>Fuente:</u> Secretaría General del Tesoro y Financiación Internacional.</td></tr></table>
+</div>
+</div>
+
+<br />
+<br />
+
