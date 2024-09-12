@@ -34,30 +34,33 @@ generar_lineas_plot <- function(
     .yscale=1,
     .yaccuracy=0.01,
     .ysuffix="",
+    .grosor_linea=1.5,
+    .angulo_ejex=0,
+    .hjust_ejex=0.5,  # Nuevo parámetro para hjust
     .trans="",
     .xbreaks=NULL,
     .debug = FALSE
 ) {
   # Crear el plot inicial con ggplot2 y geom_line
   plot_gg <- ggplot2::ggplot(data=.data, ggplot2::aes(x=!!as.symbol(.fecha), y=!!as.symbol(.valores), color=!!as.symbol(.nombres))) +
-    ggplot2::geom_line() +
+    ggplot2::geom_line(size = .grosor_linea) +
     ggplot2::labs(title=.title) +
     tesorotools::tema_gabinete_load() +
-    scale_color_manual(values = tesorotools::colores_new)
+    theme(axis.text.x = element_text(angle = .angulo_ejex, hjust = .hjust_ejex)) +  # Se agrega hjust
+    scale_color_manual(values = tesorotools::colores_new) +
+    scale_y_continuous(position = "right",
+                       labels = scales::comma_format(scale=.yscale, 
+                                                     big.mark = ".",
+                                                     decimal.mark = ",",
+                                                     suffix=.ysuffix,
+                                                     accuracy=.yaccuracy))
   
   # Configurar los breaks del eje X para fechas
   if (!is.null(.xbreaks)) {
     plot_gg <- plot_gg + ggplot2::scale_x_date(breaks = .xbreaks, date_labels = "%Y-%m")
   } else {
-    # Utiliza breaks automáticos de fechas si .xbreaks es NULL
     plot_gg <- plot_gg + ggplot2::scale_x_date(date_labels = "%Y-%m")
   }
-  
-  # Configuraciones de la escala Y
-  plot_gg <- plot_gg +
-    ggplot2::scale_y_continuous(
-      labels = scales::number_format(scale=.yscale, suffix=.ysuffix, accuracy=.yaccuracy)
-    )
   
   # Aplicar transformaciones si es necesario
   if (.trans != "") {
@@ -65,10 +68,10 @@ generar_lineas_plot <- function(
       ggplot2::scale_x_date(trans = .trans, breaks = .xbreaks, date_labels = "%Y-%m")
   }
   
-  # Retornar el objeto ggplot
   return(plot_gg)
 }
 
+# Función para Generar gráficos de cascada
 generar_cascada_plot <- function (
     .data = NULL, 
     valores, 
