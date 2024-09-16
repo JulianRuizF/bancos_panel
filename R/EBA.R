@@ -61,7 +61,7 @@ EBA_UI <- function(id, label = "EBA") {
         numericInput(ns("yaccuracy"), "Precisión de los ejes Y", value = 0.01),
         numericInput(ns("grosor_linea"), "Grosor de la línea", value = 1, min = 0.1),
         numericInput(ns("angulo_ejex"), "Angulo eje x: 0 es en horizontal", value = 90), # De 0 a 360
-        numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 6),
+        numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 4),
         numericInput(ns("largo_grafico"), "Largo del gráfico (pulgadas)", value = 4),
         numericInput(ns("size_tooltip"), "Tamaño del tooltip", value = 0.1),
         selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Año" = "year", "Mes" = "month", "Trimestre" = "quarter")),

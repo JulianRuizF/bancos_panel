@@ -4,6 +4,8 @@ diccionario_bancos_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionari
 diccionario_ibex_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_ibex_df.xlsx"), col_names = TRUE)
 diccionario_paises_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_paises_df.xlsx"), col_names = TRUE)
 diccionario_EBA_series_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_EBA_series_df.xlsx"), col_names = TRUE)
+diccionario_metricas_bancos_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_metricas_bancos_df.xlsx"), col_names = TRUE)
+
 
 # Work Sans será la fuente que sustituye a Cabinet Grotesk
 # colores_new <- c(

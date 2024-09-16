@@ -26,6 +26,7 @@ ui <- navbarPage(
   
   cotizaciones_UI(id="cotizaciones"),
   EBA_UI(id="EBA"),
+  metricas_banca_española_UI(id="metricas_banca_española"),
   cascada_UI(id="cascada"),
   opciones_UI(id="opciones"),
   
