@@ -6,6 +6,8 @@ library(ggiraph)
 library(openxlsx)
 library(lubridate)
 library(scales)
+library(officer)
+library(rvg)
 
 source("utilidades.R")  # Utilidades que podría incluir funciones personalizadas, asegúrate de que exista
 
@@ -63,8 +65,8 @@ metricas_banca_española_UI <- function(id, label = "Información financiera de 
         numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 4),
         numericInput(ns("largo_grafico"), "Largo del gráfico (pulgadas)", value = 4),
         numericInput(ns("size_tooltip"), "Tamaño del tooltip", value = 0.1),
-        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Trimestre" = "quarter", "Año" = "year", "Mes" = "month")),
-        downloadButton(outputId = ns("download_data"), label = "Guardar en Excel", class = "btn-lg btn-block"),
+        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Trimestre" = "quarter", "Año" = "year", "Mes" = "month", "Semestre" = "semester")),
+        downloadButton(outputId = ns("download_data_excel"), label = "Guardar en Excel", class = "btn-lg btn-block"),
         downloadButton(outputId = ns("download_data_docx"), label = "Guardar Gráficos", class = "btn-lg btn-block")
       ),
       mainPanel(
@@ -111,8 +113,8 @@ metricas_banca_española_Server <- function(id, tabset_id) {
       
       # Fijar los colores que dependen de las entidades seleccionadas
       colores_bancos_modificado <- tesorotools::colores_bancos
-      colores_bancos_modificado["Sabadell"] <- "#00BFFF"  # Un azul más profundo
-      colores_bancos_modificado["Caixabank"] <- "#007ACC" # Un azul claro pero más suave
+      colores_bancos_modificado["Sabadell"] <- "#00BFFF"  # Un azul claro pero más suave
+      colores_bancos_modificado["Caixabank"] <- "#007ACC" # Un azul más profundo
       names(colores_bancos_modificado)[names(colores_bancos_modificado) == "Caixabank"] <- "CaixaBank"
       
       # Usar match() para garantizar que los colores sigan el orden de entidades seleccionadas
@@ -133,6 +135,7 @@ metricas_banca_española_Server <- function(id, tabset_id) {
       xbreaks_fun <- switch(input$xbreaks,
                             "month" = scales::date_breaks("1 month"),
                             "quarter" = scales::date_breaks("3 months"),
+                            "semester" = scales::date_breaks("6 months"),
                             "year" = scales::date_breaks("1 year"))
       
       plot <- generar_lineas_plot(
@@ -161,6 +164,7 @@ metricas_banca_española_Server <- function(id, tabset_id) {
       return(plot)
     }
     
+    
     # Renderización de los 4 gráficos
     observe({
       result <- metricas_banca_española_selected_df()
@@ -188,6 +192,41 @@ metricas_banca_española_Server <- function(id, tabset_id) {
         }
       }
     })
+    
+    # Guardar el Excel
+    output$download_data_excel <- downloadHandler(
+      filename = function() {
+        paste("metricas_banca_española-", Sys.Date(), ".xlsx", sep = "")
+      },
+      content = function(file) {
+        openxlsx::write.xlsx(metricas_banca_española_selected_df()$datos, file)
+      }
+    )
+    
+    # Descargar gráficos en archivo Word
+    output$download_data_docx <- downloadHandler(
+      filename = function() {
+        paste0("metricas_banca_españoña_Graficos_", Sys.Date(), ".docx")
+      },
+      content = function(file) {
+        series_seleccionadas <- input$banca_española_metrica_input
+        datos <- metricas_banca_española_selected_df()$datos
+        
+        graficos_creados <- lapply(1:min(4, length(series_seleccionadas)), function(i) {
+          datos_serie <- datos %>% filter(metrica == series_seleccionadas[i])
+          if (nrow(datos_serie) > 0) {
+            generar_grafico_metricas_banca_española(datos_serie, metricas_banca_española_selected_df()$colores, i, series_seleccionadas[i])
+            
+          } else {
+            NULL
+          }
+        })
+        
+        # Función en utilidades.R
+        guardar_graficos(graficos_creados, series_seleccionadas, input$ancho_grafico, input$largo_grafico, file)
+      }
+    )
+    
   })
 }
 

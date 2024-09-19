@@ -31,8 +31,8 @@ cotizaciones_UI <- function(id, label = "Cotizaciones") {
           numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 6),
           numericInput(ns("largo_grafico"), "Largo del gráfico (pulgadas)", value = 4),
           numericInput(ns("size_tooltip"), "Tamaño del tooltip", value = 0.1),
-          selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Mes" = "month", "Año" = "year", "Trimestre" = "quarter")),
-          downloadButton(outputId = ns("download_data"), label = "Guardar en Excel", class = "btn-lg btn-block")
+          selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Mes" = "month", "Año" = "year", "Trimestre" = "quarter", "Diario" = "day", "Semestre" = "semester")),
+          downloadButton(outputId = ns("download_data_excel"), label = "Guardar en Excel", class = "btn-lg btn-block")
         )
       ),
       mainPanel(
@@ -97,7 +97,10 @@ cotizaciones_Server <- function(id, tabset_id) {
         xbreaks_fun <- switch(input$xbreaks,
                               "month" = scales::date_breaks("1 month"),
                               "quarter" = scales::date_breaks("3 months"),
-                              "year" = scales::date_breaks("1 year"))
+                              "semester" = scales::date_breaks("6 months"),
+                              "year" = scales::date_breaks("1 year"),
+                              "day" = scales::date_breaks("1 day")
+                              )
         
         plot_plt <- generar_lineas_plot(
           .data = cotizaciones_df(),
@@ -121,7 +124,8 @@ cotizaciones_Server <- function(id, tabset_id) {
       
       output$cotizaciones_grafico_plt <- ggiraph::renderGirafe(cotizaciones_grafico_plt())
       
-      output$download_data <- downloadHandler(
+      # Guardar el Excel
+      output$download_data_excel <- downloadHandler(
         filename = function() {
           paste("cotizaciones-", Sys.Date(), ".xlsx", sep = "")
         },

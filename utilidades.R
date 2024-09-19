@@ -37,10 +37,14 @@ generar_lineas_plot <- function(
     .yaccuracy=0.01,
     .ysuffix="",
     .grosor_linea=1.5,
+    .linetype="dashed", # dotdash, longdash, dooted originalmente
     .angulo_ejex=0,
     .hjust_ejex=0.5,  # Nuevo parámetro para hjust
     .trans="",
     .xbreaks=NULL,
+    .axis.line.x = TRUE,
+    .axis.line.y = FALSE,
+    .axis.line.size = 0.25,
     .debug = FALSE
 ) {
   # Crear el plot inicial con ggplot2 y geom_line
@@ -48,7 +52,13 @@ generar_lineas_plot <- function(
     ggplot2::geom_line(size = .grosor_linea) +
     ggplot2::labs(title=.title) +
     tesorotools::tema_gabinete_load() +
-    theme(axis.text.x = element_text(angle = .angulo_ejex, hjust = .hjust_ejex)) +  # Se agrega hjust
+    theme(
+      axis.text.x = element_text(angle = .angulo_ejex, hjust = .hjust_ejex),
+      panel.grid.major = ggplot2::element_line(linetype = .linetype),
+      legend.margin = margin(t = -8, r = 0, b = 0, l = 0),
+      # axis.ticks.x = element_line(size = .axis.line.size) # El tick con el mismo tamaño que la línea horizontal
+      # axis.ticks.length = unit(0, "cm")  # Cambia la longitud de los ticks
+      ) +  # Se agrega hjust
     scale_color_manual(values = tesorotools::colores_new) +
     scale_y_continuous(position = "right",
                        labels = scales::comma_format(scale=.yscale, 
@@ -57,17 +67,26 @@ generar_lineas_plot <- function(
                                                      suffix=.ysuffix,
                                                      accuracy=.yaccuracy))
   
+  # Líneas en el Eje x e y con grosor ajustable
+  if (.axis.line.x){ 
+    plot_gg <- plot_gg + theme(axis.line.x = element_line(size = .axis.line.size))
+  }
+  
+  if (.axis.line.y){ 
+    plot_gg <- plot_gg + theme(axis.line.y = element_line(size = .axis.line.size))
+  }
+  
   # Configurar los breaks del eje X para fechas
   if (!is.null(.xbreaks)) {
-    plot_gg <- plot_gg + ggplot2::scale_x_date(breaks = .xbreaks, date_labels = "%Y-%m")
+    plot_gg <- plot_gg + ggplot2::scale_x_date(breaks = .xbreaks, date_labels = "%Y-%m", expand = expansion(mult = c(0, 0)))
   } else {
-    plot_gg <- plot_gg + ggplot2::scale_x_date(date_labels = "%Y-%m")
+    plot_gg <- plot_gg + ggplot2::scale_x_date(date_labels = "%Y-%m", expand = expansion(mult = c(0, 0)))
   }
   
   # Aplicar transformaciones si es necesario
   if (.trans != "") {
     plot_gg <- plot_gg +
-      ggplot2::scale_x_date(trans = .trans, breaks = .xbreaks, date_labels = "%Y-%m")
+      ggplot2::scale_x_date(trans = .trans, breaks = .xbreaks, date_labels = "%Y-%m", expand = expansion(mult = c(0, 0)))
   }
   
   return(plot_gg)
@@ -257,3 +276,40 @@ generar_cascada_plot <- function (
     return(p)
   }
 }
+
+# Función para guardar gráficos en PNG desde ggplot
+guardar_graficos <- function(graficos, nombres, ancho, largo, archivo_word) {
+  # browser()
+  # Crear documento Word
+  doc <- officer::read_docx()
+  
+  for (i in seq_along(graficos)) {
+    if (!is.null(graficos[[i]])) {
+      temp_file <- tempfile(fileext = ".png")
+      cat("Generando gráfico temporal en:", temp_file, "\n")
+      
+      # Guardar el gráfico como PNG
+      tryCatch({
+        # Guardar el gráfico en un archivo temporal
+        ggsave(filename = temp_file, plot = graficos[[i]], width = ancho, height = largo, dpi = 300)
+        
+        # Agregar el nombre del gráfico al documento
+        doc <- doc %>% body_add_par(nombres[i], style = "heading 1")
+        
+        # Insertar la imagen del gráfico en el documento
+        doc <- doc %>% body_add_img(src = temp_file, width = 5, height = 5)
+        
+      }, error = function(e) {
+        cat("Error al guardar el gráfico:", e$message, "\n")
+      })
+    } else {
+      cat("Gráfico no generado para:", nombres[i], "\n")
+    }
+  }
+  
+  # Guardar el documento Word final
+  print(doc, target = archivo_word)
+}
+
+
+

@@ -1,5 +1,6 @@
 library(shiny)
 library(tidyverse)
+# renv::restore() # instala todos los paquetes espeficicados en el renv.lock 
 
 datos_path <- "datos/"
 

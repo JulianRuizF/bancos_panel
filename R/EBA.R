@@ -1,11 +1,13 @@
 library(shiny)
 library(readxl)
-library(dplyr)
+library(tidyverse)
 library(ggplot2)
 library(ggiraph)
 library(openxlsx)
 library(lubridate)
 library(scales)
+library(officer)
+library(rvg)
 
 source("utilidades.R")  # Utilidades que podría incluir funciones personalizadas, asegúrate de que exista
 
@@ -64,8 +66,8 @@ EBA_UI <- function(id, label = "EBA") {
         numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 4),
         numericInput(ns("largo_grafico"), "Largo del gráfico (pulgadas)", value = 4),
         numericInput(ns("size_tooltip"), "Tamaño del tooltip", value = 0.1),
-        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Año" = "year", "Mes" = "month", "Trimestre" = "quarter")),
-        downloadButton(outputId = ns("download_data"), label = "Guardar en Excel", class = "btn-lg btn-block"),
+        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Año" = "year", "Mes" = "month", "Trimestre" = "quarter", "Semestre" = "semester")),
+        downloadButton(outputId = ns("download_data_excel"), label = "Guardar en Excel", class = "btn-lg btn-block"),
         downloadButton(outputId = ns("download_data_docx"), label = "Guardar Gráficos", class = "btn-lg btn-block")
       ),
       mainPanel(
@@ -121,6 +123,7 @@ EBA_Server <- function(id, tabset_id) {
       xbreaks_fun <- switch(input$xbreaks,
                             "month" = scales::date_breaks("1 month"),
                             "quarter" = scales::date_breaks("3 months"),
+                            "semester" = scales::date_breaks("6 months"),
                             "year" = scales::date_breaks("1 year"))
       
       plot <- generar_lineas_plot(
@@ -133,8 +136,8 @@ EBA_Server <- function(id, tabset_id) {
         .trans = "",
         .xbreaks = xbreaks_fun,
         .grosor_linea = input$grosor_linea,
-        .angulo_ejex = input$angulo_ejex,  # Usar input para el ángulo
-        .hjust_ejex = input$hjust_ejex     # Usar input para hjust
+        .angulo_ejex = input$angulo_ejex  # Usar input para el ángulo
+        # .hjust_ejex = input$hjust_ejex     # Usar input para hjust
       ) +
         ggiraph::geom_point_interactive(
           mapping = aes(tooltip = paste0(pais, ": ", scales::comma(valores, accuracy = input$yaccuracy, big.mark = ".", decimal.mark = ","), ysuffix, "\n", "fecha: ", fecha)),
@@ -149,7 +152,6 @@ EBA_Server <- function(id, tabset_id) {
       return(plot)
     }
     
-    # Renderización de los 4 gráficos
     observe({
       datos <- EBA_selected_df()
       series_seleccionadas <- input$EBA_grafico_series_input
@@ -163,17 +165,49 @@ EBA_Server <- function(id, tabset_id) {
               if (nrow(datos_serie) > 0) {
                 plot_plt <- generar_grafico_EBA(datos_serie, idx, series_seleccionadas[idx])
                 ggiraph::girafe(ggobj = plot_plt, 
-                                width_svg = input$ancho_grafico,  # Tamaño ajustable del gráfico
+                                width_svg = input$ancho_grafico,  
                                 height_svg = input$largo_grafico, 
                                 options = list(opts_tooltip(opacity = 0.9)))
               } else {
-                ggiraph::girafe(ggobj = NULL)  # Evitar gráficos vacíos
+                ggiraph::girafe(ggobj = NULL)
               }
             })
           })
         }
       }
     })
+    
+    # Guardar el Excel
+    output$download_data_excel <- downloadHandler(
+      filename = function() {
+        paste("EBA-", Sys.Date(), ".xlsx", sep = "")
+      },
+      content = function(file) {
+        openxlsx::write.xlsx(EBA_selected_df(), file)
+      }
+    )
+    
+    # Descargar gráficos en archivo Word
+    output$download_data_docx <- downloadHandler(
+      filename = function() {
+        paste0("EBA_Graficos_", Sys.Date(), ".docx")
+      },
+      content = function(file) {
+        series_seleccionadas <- input$EBA_grafico_series_input
+        datos <- EBA_selected_df()
+        
+        graficos_creados <- lapply(1:min(4, length(series_seleccionadas)), function(i) {
+          datos_serie <- datos %>% filter(nombre == series_seleccionadas[i])
+          if (nrow(datos_serie) > 0) {
+            generar_grafico_EBA(datos_serie, i, series_seleccionadas[i])
+          } else {
+            NULL
+          }
+        })
+        
+        guardar_graficos(graficos_creados, series_seleccionadas, input$ancho_grafico, input$largo_grafico, file)
+      }
+    )
   })
 }
 
