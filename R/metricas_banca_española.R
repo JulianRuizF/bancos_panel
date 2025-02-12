@@ -38,7 +38,7 @@ metricas_banca_española_UI <- function(id, label = "Información financiera de 
           inputId = ns("banca_española_metrica_input"),
           label = "Métrica",
           choices = metricas_banca_española_df$metrica,
-          selected = c("Ingresos Netos Intereses España", "Comisiones España", "Gastos de Explotación España", "Deterioros y Provisiones España"),
+          selected = c("Ingresos Netos Intereses", "Comisiones", "Gastos de Explotación", "Deterioros y Provisiones","Resultado Antes de Impuestos","Impuesto de Sociedades", "Atribuible a Minoritarios", "Resultado Neto", "Activo Total", "Depósitos"),
           multiple = TRUE,
           options = list(create = TRUE)
         ),
@@ -56,7 +56,7 @@ metricas_banca_española_UI <- function(id, label = "Información financiera de 
           start = "2020-12-31",
           end = Sys.Date()
         ),
-        checkboxInput(ns("base100"), "Mostrar en base 100", value = TRUE),
+        checkboxInput(ns("base100"), "Mostrar en base 100", value = FALSE),
         checkboxInput(ns("porcentaje"), "Mostrar en porcentaje", value = FALSE),
         checkboxInput(ns("mostrar_nombre"), "Mostrar nombre del gráfico", value = TRUE),
         numericInput(ns("yaccuracy"), "Precisión de los ejes Y", value = 1),
@@ -77,7 +77,19 @@ metricas_banca_española_UI <- function(id, label = "Información financiera de 
         fluidRow(
           column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_3"))),
           column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_4")))
-        )
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_5"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_6")))
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_7"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_8")))
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_9"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("metricas_banca_española_grafico_plt_10")))
+        ),
       )
     )
   )
@@ -165,7 +177,7 @@ metricas_banca_española_Server <- function(id, tabset_id) {
     }
     
     
-    # Renderización de los 4 gráficos
+    # Renderización de los 10 gráficos
     observe({
       result <- metricas_banca_española_selected_df()
       datos <- result$datos
@@ -173,7 +185,7 @@ metricas_banca_española_Server <- function(id, tabset_id) {
       series_seleccionadas <- input$banca_española_metrica_input
       
       if (length(series_seleccionadas) > 0 && !is.null(datos)) {
-        for (i in 1:min(4, length(series_seleccionadas))) {
+        for (i in 1:min(10, length(series_seleccionadas))) {
           local({
             idx <- i
             output[[paste0("metricas_banca_española_grafico_plt_", idx)]] <- ggiraph::renderGirafe({
@@ -212,7 +224,7 @@ metricas_banca_española_Server <- function(id, tabset_id) {
         series_seleccionadas <- input$banca_española_metrica_input
         datos <- metricas_banca_española_selected_df()$datos
         
-        graficos_creados <- lapply(1:min(4, length(series_seleccionadas)), function(i) {
+        graficos_creados <- lapply(1:min(10, length(series_seleccionadas)), function(i) {
           datos_serie <- datos %>% filter(metrica == series_seleccionadas[i])
           if (nrow(datos_serie) > 0) {
             generar_grafico_metricas_banca_española(datos_serie, metricas_banca_española_selected_df()$colores, i, series_seleccionadas[i])

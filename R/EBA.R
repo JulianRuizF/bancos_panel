@@ -17,7 +17,9 @@ files_sorted <- files[order(sapply(files, function(file) {
   matches <- regmatches(file, regexpr("Q[1-4] 202[45]", file))
   return(matches)
 }), decreasing = TRUE)]
+
 latest_file <- files_sorted[1]
+
 datos_EBA_df <- readxl::read_xlsx(latest_file, sheet = "KRIs by country and EU", col_names = TRUE) |>
   rename(fecha = `[Period]`, codigo_pais = `[Country]`, numero = `[Number]`, codigo = `[Name]`, valores = `[Ratio]`) |>
   mutate(fecha = as.Date(paste0(as.character(fecha), "01"), "%Y%m%d") |> ceiling_date("month") - days(1)) |> 
@@ -39,7 +41,7 @@ EBA_UI <- function(id, label = "EBA") {
           inputId = ns("EBA_grafico_series_input"),
           label = "Variable",
           choices = datos_EBA_df$nombre,
-          selected = c("ROE", "ROA", "NPL ratio", "Ratio de cobertura"),
+          selected = c("ROE", "NPL ratio", "Ratio de cobertura", "LCR", "Ratio de eficiencia", "Cost of risk", "Ratio de capital Tier 1", "Ratio CET 1 Fully Loaded", "Ratio de garantía"),
           multiple = TRUE,
           options = list(create = TRUE)
         ),
@@ -47,7 +49,7 @@ EBA_UI <- function(id, label = "EBA") {
           inputId = ns("EBA_grafico_paises_input"),
           label = "Países",
           choices = datos_EBA_df$pais,
-          selected = c("España", "Unión Europea", "Alemania", "Italia", "Francia", "Portugal"),
+          selected = c("España", "UE", "Alemania", "Italia", "Francia"),
           multiple = TRUE,
           options = list(create = TRUE)
         ),
@@ -60,13 +62,13 @@ EBA_UI <- function(id, label = "EBA") {
         checkboxInput(ns("base100"), "Mostrar en base 100", value = FALSE),
         checkboxInput(ns("porcentaje"), "Mostrar en porcentaje", value = TRUE),
         checkboxInput(ns("mostrar_nombre"), "Mostrar nombre del gráfico", value = TRUE),
-        numericInput(ns("yaccuracy"), "Precisión de los ejes Y", value = 0.01),
+        numericInput(ns("yaccuracy"), "Precisión de los ejes Y", value = 1),
         numericInput(ns("grosor_linea"), "Grosor de la línea", value = 1, min = 0.1),
         numericInput(ns("angulo_ejex"), "Angulo eje x: 0 es en horizontal", value = 90), # De 0 a 360
         numericInput(ns("ancho_grafico"), "Ancho del gráfico (pulgadas)", value = 4),
         numericInput(ns("largo_grafico"), "Largo del gráfico (pulgadas)", value = 4),
         numericInput(ns("size_tooltip"), "Tamaño del tooltip", value = 0.1),
-        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Año" = "year", "Mes" = "month", "Trimestre" = "quarter", "Semestre" = "semester")),
+        selectInput(ns("xbreaks"), "Periodicidad eje X", choices = c("Trimestre" = "quarter", "Año" = "year", "Mes" = "month", "Semestre" = "semester")),
         downloadButton(outputId = ns("download_data_excel"), label = "Guardar en Excel", class = "btn-lg btn-block"),
         downloadButton(outputId = ns("download_data_docx"), label = "Guardar Gráficos", class = "btn-lg btn-block")
       ),
@@ -78,8 +80,20 @@ EBA_UI <- function(id, label = "EBA") {
         fluidRow(
           column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_3"))),
           column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_4")))
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_5"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_6")))
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_7"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_8")))
+        ),
+        fluidRow(
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_9"))),
+          column(width = 6, ggiraph::girafeOutput(outputId = ns("EBA_grafico_plt_10")))
         )
-      )
+      )  
     )
   )
 }
@@ -157,7 +171,7 @@ EBA_Server <- function(id, tabset_id) {
       series_seleccionadas <- input$EBA_grafico_series_input
       
       if (length(series_seleccionadas) > 0 && !is.null(datos)) {
-        for (i in 1:min(4, length(series_seleccionadas))) {
+        for (i in 1:min(10, length(series_seleccionadas))) {
           local({
             idx <- i
             output[[paste0("EBA_grafico_plt_", idx)]] <- ggiraph::renderGirafe({
@@ -196,7 +210,7 @@ EBA_Server <- function(id, tabset_id) {
         series_seleccionadas <- input$EBA_grafico_series_input
         datos <- EBA_selected_df()
         
-        graficos_creados <- lapply(1:min(4, length(series_seleccionadas)), function(i) {
+        graficos_creados <- lapply(1:min(10, length(series_seleccionadas)), function(i) {
           datos_serie <- datos %>% filter(nombre == series_seleccionadas[i])
           if (nrow(datos_serie) > 0) {
             generar_grafico_EBA(datos_serie, i, series_seleccionadas[i])

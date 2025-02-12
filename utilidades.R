@@ -6,8 +6,6 @@ diccionario_paises_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionari
 diccionario_EBA_series_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_EBA_series_df.xlsx"), col_names = TRUE)
 diccionario_metricas_bancos_df <- readxl::read_xlsx(path = paste0(datos_path, "diccionario_metricas_bancos_df.xlsx"), col_names = TRUE)
 
-
-# Work Sans será la fuente que sustituye a Cabinet Grotesk
 # colores_new <- c(
 #   '#001e93',  # AZUL
 #   '#ffbd4c',  # AMARILLO
@@ -297,7 +295,7 @@ guardar_graficos <- function(graficos, nombres, ancho, largo, archivo_word) {
         doc <- doc %>% body_add_par(nombres[i], style = "heading 1")
         
         # Insertar la imagen del gráfico en el documento
-        doc <- doc %>% body_add_img(src = temp_file, width = 5, height = 5)
+        doc <- doc %>% body_add_img(src = temp_file, width = 3, height = 3)
         
       }, error = function(e) {
         cat("Error al guardar el gráfico:", e$message, "\n")
