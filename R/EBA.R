@@ -12,12 +12,29 @@ library(rvg)
 source("utilidades.R")  # Utilidades que podría incluir funciones personalizadas, asegúrate de que exista
 
 # Leer el archivo del Dashboard ----
-files <- list.files(path = "datos", pattern = "Data Annex InteractiveRiskDashboard.*202[45]\\.xlsx$", full.names = TRUE)
-files_sorted <- files[order(sapply(files, function(file) {
-  matches <- regmatches(file, regexpr("Q[1-4] 202[45]", file))
-  return(matches)
-}), decreasing = TRUE)]
+# Leer el archivo del Dashboard ----
+files <- list.files(
+  path = "datos",
+  pattern = "Data Annex InteractiveRiskDashboard.*202[4567]\\.xlsx$",
+  full.names = TRUE
+)
 
+extract_qy <- function(x) {
+  m <- regexec("Q([1-4])\\s+(20\\d{2})", x)
+  r <- regmatches(x, m)[[1]]
+  if (length(r) >= 3) {
+    q <- as.integer(r[2])
+    y <- as.integer(r[3])
+    return(c(q = q, y = y))
+  } else {
+    return(c(q = NA_integer_, y = NA_integer_))
+  }
+}
+
+qy <- t(vapply(files, extract_qy, FUN.VALUE = c(q = 0L, y = 0L)))
+order_key <- qy[, "y"] * 4 + qy[, "q"]
+
+files_sorted <- files[order(order_key, decreasing = TRUE, na.last = NA)]
 latest_file <- files_sorted[1]
 
 datos_EBA_df <- readxl::read_xlsx(latest_file, sheet = "KRIs by country and EU", col_names = TRUE) |>
